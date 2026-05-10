@@ -1,0 +1,7 @@
+DEV/
+developer.zip
+__pycache__/
+*.pyc
+partial_indexes/
+final_index/
+
