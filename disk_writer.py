@@ -117,6 +117,128 @@ def write_partial_index(index, partial_number):
     print(f"info: uniuq terms {total_terms}")
     print(f"info: total posts {total_posts}")
             
+def merge_partial_idxs():
+    #merge all partial idx, k-way heap merge
+    
+    partial_files = sorted([
+        file_name
+        for file_name in os.listdir(PARTIAL_DIR)
+
+        if (
+            file_name.startswith("partial_index_")
+            and file_name.endswith(".json")
+            and os.path.isfile(
+                os.path.join(PARTIAL_DIR, file_name)
+            )
+        )
+    ])
+    #stop if none
+    if not partial_files:
+        print("no partial inx files")
+        return
+    
+    iterators = []
+
+    for file_name in partial_files:
+
+        file_path = os.path.join(
+            PARTIAL_DIR,
+            file_name
+        )
+        try:
+            with open(file_path, "r", encoding="utf-8") as partial_file:
+                partial_data = json.load(partial_file)
+
+            if not isinstance(partial_data, dict):
+                print(f"skipping bad json struct")
+                continue
+
+            iterators.append(iter(sorted(partial_data.items())))
+
+        except json.JSONDecodeError:
+            print(f"error: coouldnt decode json {file_name}")
+
+        except Exception as error:
+            print(f"error:error read {file_name}: {error}")
+
+        
+    #heap
+    #term, iterators, postings
+
+    min_heap = []
+    for iterator_index, iterator in enumerate(iterators):
+        try:
+            term, postings = next(iterator)
+            
+            heapq.heappush(min_heap, (term, iterator_index, postings))
+        except StopIteration:
+            continue
+
+    final_index_path = os.path.join(
+        FINAL_DIR, "merged_idx.json"
+    )
+    total_terms = 0
+    total_posts = 0
+
+    #merged idx
+
+    with open(final_index_path, "w", encoding="utf-8") as final_file:
+        final_file.write("{\n")
+        first_entry = True
+        while min_heap:
+            current_term, iterator_index, postings = heapq.heappop(min_heap)
+            merged_postings = list(postings)
+
+            while min_heap and min_heap [0][0] == current_term:
+                _, other_iterators_idx, other_postings = heapq.heappop(min_heap)
+
+                merged_postings.extend(other_postings)
+
+                try:
+                    next_term, next_postings = next(
+                        iterators[other_iterators_idx]
+                    )
+                    heapq.heappush(
+                        min_heap, (
+                            next_term, 
+                            other_iterators_idx,
+                            next_postings
+                        )
+                    )
+                except StopIteration:
+                    pass
+            try:
+                next_term, next_postings = next(
+                    iterators[iterator_index]
+                )
+                heapq.heappush(
+                        min_heap, (
+                            next_term, 
+                            iterator_index,
+                            next_postings
+                        )
+                    )
+            except StopIteration:
+                pass
+
+            #merged term into disk
+            if not first_entry:
+                final_file.write(",\n")
+
+            final_file.write(f'  "{current_term}": ')
+
+            json.dump(
+                merged_postings,
+                final_file
+            )
+            first_entry = False
+            total_terms += 1
+            total_posts += len(merged_postings)
+
+        final_file.write("\n}")
+    final_size_kb = round(os.path.getsize(final_index_path) / 1024, 2)
+
+
 
 
 
