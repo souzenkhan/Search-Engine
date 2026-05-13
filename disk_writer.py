@@ -1,3 +1,4 @@
+#imports
 import os
 import json
 import heapq
@@ -5,8 +6,11 @@ import heapq
 #directory
 
 #folder, temp partial indexs
+#when indexxing, sometimes put data in 
 PARTIAL_DIR = "partial_indexes"
+
 #folder, final merge index files
+#-final stuff like doc_map.json
 FINAL_DIR = "final_index"
 
 #directories
@@ -14,16 +18,22 @@ os.makedirs(PARTIAL_DIR, exist_ok=True)
 os.makedirs(FINAL_DIR, exist_ok=True)
 
 #check posting before save
+#everything should have 
+#doc_id, tf, impotant_tf
 def is_valid_posts(posting):
+    #need these
     need_attributes = ["doc_id", "tf", "important_tf"]
 
+    #posting has everything
     for attr in need_attributes:
         if not hasattr(posting, attr):
             return False
 
+    #should always be int
     if not isinstance(posting.doc_id, int):
         return False
 
+    #never neg
     if posting.tf < 0:
         return False
 
@@ -34,6 +44,7 @@ def is_valid_posts(posting):
 
 def serial_posts(posting):
     #posting object into dict, -> json
+    #in order to put into json file
     return {
         "doc_id": posting.doc_id,
         "tf": posting.tf,
@@ -41,8 +52,9 @@ def serial_posts(posting):
     }
 
 def write_partial_index(index, partial_number):
-    #current mim inverted index -> partail json file on disk
+    #current in-mem inverted index -> partial json file on disk
     #alphabetical, so merge better
+    #partial idx: so inverted idx isnt full in mem, so put parts in ram then go to disk, clear mem and continue
     if not isinstance(index, dict):
         raise TypeError("Error: idx not dict")
 
@@ -114,12 +126,18 @@ def write_partial_index(index, partial_number):
 
     #debug
     print(f"info: partial idx save {output_path}")
-    print(f"info: uniuq terms {total_terms}")
+    print(f"info: unique terms {total_terms}")
     print(f"info: total posts {total_posts}")
             
+
+# merge partial indexes into 1 final index
+#k-way heap 
+#heap merege: batches of partial indexs are sorted, heap merge will merge, using less memory
+#commpares to redoing evertyhign again
+#heap store: term, iterator_index, postings
 def merge_partial_idxs():
     #merge all partial idx, k-way heap merge
-    
+    #online valid partial index files
     partial_files = sorted([
         file_name
         for file_name in os.listdir(PARTIAL_DIR)
@@ -136,9 +154,11 @@ def merge_partial_idxs():
     if not partial_files:
         print("no partial inx files")
         return
-    
+    #iterator list
+    #each goes through one sorted. partial idx
     iterators = []
 
+    #open ever partial idx
     for file_name in partial_files:
 
         file_path = os.path.join(
@@ -149,12 +169,15 @@ def merge_partial_idxs():
             with open(file_path, "r", encoding="utf-8") as partial_file:
                 partial_data = json.load(partial_file)
 
+            #skip wrong json struct
             if not isinstance(partial_data, dict):
                 print(f"skipping bad json struct")
                 continue
 
+            #make iterator of term, postings
             iterators.append(iter(sorted(partial_data.items())))
 
+        #errors:
         except json.JSONDecodeError:
             print(f"error: coouldnt decode json {file_name}")
 
@@ -164,8 +187,10 @@ def merge_partial_idxs():
         
     #heap
     #term, iterators, postings
-
+    #heap initilization
+    #min heap, smallest alpahbaetical at top
     min_heap = []
+    #heap with first term from every iterators
     for iterator_index, iterator in enumerate(iterators):
         try:
             term, postings = next(iterator)
@@ -174,26 +199,34 @@ def merge_partial_idxs():
         except StopIteration:
             continue
 
+    #final merge index file path
     final_index_path = os.path.join(
-        FINAL_DIR, "merged_idx.json"
+        FINAL_DIR, "merged_index.json"
     )
     total_terms = 0
     total_posts = 0
 
     #merged idx
 
+    #final merge now
     with open(final_index_path, "w", encoding="utf-8") as final_file:
         final_file.write("{\n")
         first_entry = True
+        #keep going until heap empty
         while min_heap:
+            #smallest alphabet fist
             current_term, iterator_index, postings = heapq.heappop(min_heap)
+            #merge postings list
             merged_postings = list(postings)
 
+            #merge duplicates
+            #if same term in bunch of partial indexes, combine
             while min_heap and min_heap [0][0] == current_term:
                 _, other_iterators_idx, other_postings = heapq.heappop(min_heap)
 
                 merged_postings.extend(other_postings)
 
+                #popped iterator
                 try:
                     next_term, next_postings = next(
                         iterators[other_iterators_idx]
@@ -207,6 +240,7 @@ def merge_partial_idxs():
                     )
                 except StopIteration:
                     pass
+            #org iterator
             try:
                 next_term, next_postings = next(
                     iterators[iterator_index]
@@ -222,28 +256,40 @@ def merge_partial_idxs():
                 pass
 
             #merged term into disk
+            #commas between entry
             if not first_entry:
                 final_file.write(",\n")
 
+            #term
             final_file.write(f'  "{current_term}": ')
 
+            #postings list
             json.dump(
                 merged_postings,
-                final_file
+                final_file,
+                #better format
+                indent=2
             )
             first_entry = False
             total_terms += 1
             total_posts += len(merged_postings)
 
         final_file.write("\n}")
+    #merge file size
     final_size_kb = round(os.path.getsize(final_index_path) / 1024, 2)
 
+    #debugging
     print(f"info: merge idx save: {final_index_path}")
     print(f"info: total terms: {total_terms}")
     print(f"info: total postings: {total_posts}")
-    print(f"info: final idx size: {final_size_kb}")
+    print(f"info: final idx size: {final_size_kb} KB")
 
+#save mappings
+#doc_id -> url
+#1 is https://...
+#json is stringkey, so doc id into strings
 def save_doc_map(doc_map):
+    #error
     if not isinstance(doc_map, dict):
         raise TypeError("error, doc map has to be a dict")
 
@@ -255,18 +301,21 @@ def save_doc_map(doc_map):
 
     skip_entries = 0
 
+    #go thorguh mapps
     for doc_id, url in doc_map.items():
-
+        #bad ids, skip
         if not isinstance(doc_id, int):
             skip_entries += 1
             continue
-
+        #bad urls, skip
         if not isinstance(url, str):
             skip_entries += 1
             continue
 
+        #int key to string
         cleaned_map[str(doc_id)] = url
 
+    #mapping to disk
     with open(output_path, "w", encoding="utf-8") as output_file:
 
         json.dump(
@@ -275,32 +324,38 @@ def save_doc_map(doc_map):
             indent=2
         )
 
+    #debug statement
     print(f"info: doc map -> {output_path}")
 
         
 
-
+#cleanup temp partial index files
+#remove temps after merge
+#storage cleaner, after final merge index
 
 def clear_partial_indexes():
 
     removed_files = 0
     failed_removals = 0
 
+    #go through partial index directory
     for file_name in os.listdir(PARTIAL_DIR):
 
         file_path = os.path.join(
             PARTIAL_DIR, file_name
         )
-
+        #skip directories
         if not os.path.isfile(file_path):
             continue
 
         try:
+            #delete file
             os.remove(file_path)
             removed_files += 1
 
         except Exception:
             failed_removals += 1
 
+    #debug cleanup stats
     print(f"info: remove files: {removed_files}")
     print(f"info fail removals: {failed_removals}")
