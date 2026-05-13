@@ -276,4 +276,26 @@ def save_doc_map(doc_map):
 
 
 
+def clear_partial_indexes():
 
+    removed_files = 0
+    failed_removals = 0
+
+    for file_name in os.listdir(PARTIAL_DIR):
+
+        file_path = os.path.join(
+            PARTIAL_DIR, file_name
+        )
+
+        if not os.path.isfile(file_path):
+            continue
+
+        try:
+            os.remvoe(file_path)
+            removed_files += 1
+
+        except Exception:
+            failed_removals += 1
+
+        print("info: remove files: {removed_files}")
+        print("info fail removals: {failed_removals}")
