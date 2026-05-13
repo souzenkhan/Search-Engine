@@ -89,12 +89,12 @@ def write_partial_index(index, partial_number):
         for posting in posts:
 
             #skip bad postings
-            if not is_valid_posts(posts):
+            if not is_valid_posts(posting):
                 skip_posts += 1
                 continue
 
             #posting obj -> dict
-            serial_postings.append(serial_postings(posting))
+            serial_postings.append(serial_posts(posting))
 
             total_posts += 1
 
@@ -238,6 +238,11 @@ def merge_partial_idxs():
         final_file.write("\n}")
     final_size_kb = round(os.path.getsize(final_index_path) / 1024, 2)
 
+    print(f"info: merge idx save: {final_index_path}")
+    print(f"info: total terms: {total_terms}")
+    print(f"info: total postings: {total_posts}")
+    print(f"info: final idx size: {final_size_kb}")
+
 def save_doc_map(doc_map):
     if not isinstance(doc_map, dict):
         raise TypeError("error, doc map has to be a dict")
@@ -250,7 +255,7 @@ def save_doc_map(doc_map):
 
     skip_entries = 0
 
-    for doc_id, url in doc_map.iterms():
+    for doc_id, url in doc_map.items():
 
         if not isinstance(doc_id, int):
             skip_entries += 1
@@ -291,11 +296,11 @@ def clear_partial_indexes():
             continue
 
         try:
-            os.remvoe(file_path)
+            os.remove(file_path)
             removed_files += 1
 
         except Exception:
             failed_removals += 1
 
-        print("info: remove files: {removed_files}")
-        print("info fail removals: {failed_removals}")
+    print(f"info: remove files: {removed_files}")
+    print(f"info fail removals: {failed_removals}")
