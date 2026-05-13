@@ -238,7 +238,41 @@ def merge_partial_idxs():
         final_file.write("\n}")
     final_size_kb = round(os.path.getsize(final_index_path) / 1024, 2)
 
+def save_doc_map(doc_map):
+    if not isinstance(doc_map, dict):
+        raise TypeError("error, doc map has to be a dict")
 
+    output_path = os.path.join(
+        FINAL_DIR,
+        "doc_map.json"
+    )
+    cleaned_map = {}
+
+    skip_entries = 0
+
+    for doc_id, url in doc_map.iterms():
+
+        if not isinstance(doc_id, int):
+            skip_entries += 1
+            continue
+
+        if not isinstance(url, str):
+            skip_entries += 1
+            continue
+
+        cleaned_map[str(doc_id)] = url
+
+    with open(output_path, "w", encoding="utf-8") as output_file:
+
+        json.dump(
+            cleaned_map,
+            output_file,
+            indent=2
+        )
+
+    print(f"info: doc map -> {output_path}")
+
+        
 
 
 
