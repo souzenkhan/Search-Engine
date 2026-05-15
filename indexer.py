@@ -15,7 +15,7 @@ from disk_writer import (
     write_partial_index,
     merge_partial_idxs,
     save_doc_map,
-    clear_partial_indexes
+    clear_partial_indexes #are we using this?
 )
 
 #dataset folder
@@ -41,7 +41,7 @@ def build_index():
     docs_processed = 0
 
     skip_files = 0
-    fail_files = 0
+    failed_files = 0
 
     print("info: start index ..")
 
