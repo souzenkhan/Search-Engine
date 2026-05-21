@@ -1,0 +1,57 @@
+import json
+from query_processing import query_process
+
+
+def load_index(index_path: str = "index.json") -> dict:
+    with open(index_path, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+def load_doc_id_map(map_path: str = "doc_id_map.json") -> dict:
+    with open(map_path, "r", encoding="utf-8") as f:
+        return {int(k): v for k, v in json.load(f).items()}
+
+
+def get_postings(index: dict, term: str) -> list:
+    return index.get(term, [])
+
+
+def retrieve(query: str, index: dict) -> list:
+    terms = query_process(query)
+
+    if not terms:
+        return []
+
+    # get the set of doc_ids for each query term
+    posting_sets = []
+    for term in terms:
+        postings = get_postings(index, term)
+        doc_ids = {p["doc_id"] for p in postings}
+        posting_sets.append(doc_ids)
+
+    # AND logic: only keep doc_ids that appear in every term's postings
+    result = posting_sets[0]
+    for s in posting_sets[1:]:
+        result = result & s
+
+    return sorted(result)
+
+
+if __name__ == "__main__":
+    print("Loading index...")
+    index = load_index()
+    doc_id_map = load_doc_id_map()
+
+    while True:
+        query = input("\nEnter query (or 'quit'): ").strip()
+        if query.lower() == "quit":
+            break
+
+        doc_ids = retrieve(query, index)
+
+        if not doc_ids:
+            print("No results found.")
+        else:
+            print(f"{len(doc_ids)} result(s):")
+            for doc_id in doc_ids:
+                print(f"  [{doc_id}] {doc_id_map.get(doc_id, 'unknown')}")
