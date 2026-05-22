@@ -1,13 +1,13 @@
 import json
 from query_processing import query_process
 
-
-def load_index(index_path: str = "index.json") -> dict:
+#im updating retriever paths to use merged_index.json and doc_map.json
+def load_index(index_path: str = "final_index/merged_index.json") -> dict:
     with open(index_path, "r", encoding="utf-8") as f:
         return json.load(f)
 
 
-def load_doc_id_map(map_path: str = "doc_id_map.json") -> dict:
+def load_doc_id_map(map_path: str = "final_index/doc_map.json") -> dict:
     with open(map_path, "r", encoding="utf-8") as f:
         return {int(k): v for k, v in json.load(f).items()}
 

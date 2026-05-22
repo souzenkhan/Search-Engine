@@ -1,9 +1,17 @@
+import os
 from retriever import load_index, load_doc_id_map, retrieve
 from ranker import rank_documents
 
 
 def search():
     print("Loading search engine...")
+
+    if (not os.path.exists("final_index/merged_index.json")
+        or not os.path.exists("final_index/doc_map.json")):
+
+        print("Index is not found. Running indexer first...")
+        import indexer
+        indexer.build_index()
 
     index = load_index()
     doc_id_map = load_doc_id_map()
