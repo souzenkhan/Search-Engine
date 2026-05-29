@@ -44,7 +44,7 @@ def build_document_scores(query, retrieved_doc_ids, inverted_index):
 
         #idf score
         idf = math.log(
-            len(valid_docs) / max(doc_frequency, 1)
+            1 + (1 / max(doc_frequency, 1))
         )
 
         #checks
@@ -84,7 +84,7 @@ def build_document_scores(query, retrieved_doc_ids, inverted_index):
 
     #bonus for matching multiple query terms
     for doc_id in document_scores:
-        document_scores[doc_id] += matched_terms.get(doc_id, 0) * 10
+        document_scores[doc_id] += matched_terms.get(doc_id, 0) * 5
 
     #return doc id: score
     return document_scores
