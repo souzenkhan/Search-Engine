@@ -11,7 +11,7 @@ def parse_document(file_path):
     #getting webpage url and html content from json
     url = data["url"]
     content = data["content"]
-    soup = BeautifulSoup(content, "html.parser")
+    soup = BeautifulSoup(content, "lxml")
 
     text = soup.get_text(separator=" ", strip = True)
 
