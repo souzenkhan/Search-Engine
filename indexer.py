@@ -24,7 +24,7 @@ DEV_FOLDER = "DEV"
 #we can change later
 #maybe 1000 or 5000, lets see
 #how many doc to process before flush
-FLUSH_THRESHOLD = 3000
+FLUSH_THRESHOLD = 1000
 
 def build_index():
     #go throw dev dataset, parse, tokenize, freq maps, posting to inverted index, flush partials to disk, merge partials, save doc map
@@ -81,11 +81,18 @@ def build_index():
                     parsed_doc["url"], tf_map, important_tf_map
                 )
                 docs_processed += 1
+                print(
+                    f"terms in memory: {len(inverted_index.index)}"
+                )
 
                 #updates
                 if docs_processed % 100 == 0:
+                    elapsed = time.time() - start_time
                     print(
                         f"info: docs processed: {docs_processed}"
+                    )
+                    print(
+                        f"info: elapsed time: {round(elapsed, 2)} sec"
                     )
                 
                 #flush to disk
