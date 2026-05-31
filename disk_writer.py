@@ -205,6 +205,7 @@ def merge_partial_idxs():
     )
     total_terms = 0
     total_posts = 0
+    term_offsets = {}
 
     #merged idx
 
@@ -263,6 +264,9 @@ def merge_partial_idxs():
             #term
             final_file.write(f'  "{current_term}": ')
 
+            #record byte offset of this term's postings list for seek-based retrieval
+            term_offsets[current_term] = final_file.tell()
+
             #postings list
             json.dump(
                 merged_postings,
@@ -275,6 +279,12 @@ def merge_partial_idxs():
             total_posts += len(merged_postings)
 
         final_file.write("\n}")
+
+    #save term offsets so retriever can seek() to any term without loading full index
+    offsets_path = os.path.join(FINAL_DIR, "term_offsets.json")
+    with open(offsets_path, "w", encoding="utf-8") as f:
+        json.dump(term_offsets, f)
+    print(f"info: term offsets saved: {offsets_path}")
     #merge file size
     final_size_kb = round(os.path.getsize(final_index_path) / 1024, 2)
 

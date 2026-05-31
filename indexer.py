@@ -132,6 +132,10 @@ def build_index():
 
     save_doc_map(inverted_index.doc_id_map)
 
+    #cleanup temp partial index files since merge is done
+    print("info: clearing partial index files")
+    clear_partial_indexes()
+
     elapsed_time = round(time.time() - start_time, 2)
     #stats
 
