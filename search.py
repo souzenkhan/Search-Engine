@@ -1,5 +1,5 @@
 import os
-from retriever import load_index, load_doc_id_map, retrieve
+from retriever import load_index_safe, load_doc_id_map, retrieve
 from ranker import rank_documents
 
 
@@ -13,7 +13,7 @@ def search():
         import indexer
         indexer.build_index()
 
-    index = load_index()
+    index = load_index_safe()
     doc_id_map = load_doc_id_map()
 
     print("Search engine ready!")

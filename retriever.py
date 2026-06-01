@@ -36,6 +36,58 @@ def retrieve(query: str, index: dict) -> list:
 
     return sorted(result)
 
+# use load_index_safe() instead of load_index() to avoid loading full index into RAM
+class IndexHandle:
+    def __init__(self, index_path, offsets_path):
+        with open(offsets_path, "r", encoding="utf-8") as f:
+            self._offsets = json.load(f)
+        self._fh = open(index_path, "r", encoding="utf-8")
+ 
+    def get(self, term, default=None):
+        postings = self.get_postings(term)
+        if postings:
+            return postings
+        return default if default is not None else []
+ 
+    def __contains__(self, term):
+        return term in self._offsets
+ 
+    def get_postings(self, term):
+        offset = self._offsets.get(term)
+        if offset is None:
+            return []
+        self._fh.seek(offset)
+        buf = []
+        depth = 0
+        found = False
+        while True:
+            ch = self._fh.read(1)
+            if not ch:
+                break
+            buf.append(ch)
+            if ch == '[':
+                depth += 1
+                found = True
+            elif ch == ']':
+                depth -= 1
+                if found and depth == 0:
+                    break
+        if not buf or not found:
+            return []
+        try:
+            return json.loads("".join(buf))
+        except json.JSONDecodeError:
+            return []
+ 
+    def close(self):
+        self._fh.close()
+ 
+ 
+def load_index_safe(index_path: str = "final_index/merged_index.json", offsets_path: str = "final_index/term_offsets.json") -> IndexHandle:
+    return IndexHandle(index_path, offsets_path)
+ 
+ 
+
 
 if __name__ == "__main__":
     print("Loading index...")

@@ -1,4 +1,5 @@
 from query_processing import query_process
+import math
 
 #tf vals is valid
 def safe_number(value):
@@ -28,6 +29,7 @@ def build_document_scores(query, retrieved_doc_ids, inverted_index):
 
     #doc_is -> score
     document_scores = {}
+    matched_terms = {}
 
     #go through everthing
     for term in processed_terms:
@@ -36,6 +38,14 @@ def build_document_scores(query, retrieved_doc_ids, inverted_index):
 
         #get posting
         postings_list = inverted_index.get(term)
+
+        #document frequency
+        doc_frequency = len(postings_list)
+
+        #idf score
+        idf = math.log(
+            1 + (1 / max(doc_frequency, 1))
+        )
 
         #checks
         if not isinstance(postings_list, list):
@@ -50,6 +60,12 @@ def build_document_scores(query, retrieved_doc_ids, inverted_index):
             if current_doc_id not in valid_docs:
                 continue
 
+             #count matched query terms
+            if current_doc_id not in matched_terms:
+                matched_terms[current_doc_id] = 0
+
+            matched_terms[current_doc_id] += 1
+
             #get tf score
             tf_value = safe_number(
                 posting.get("tf", 0)
@@ -59,12 +75,17 @@ def build_document_scores(query, retrieved_doc_ids, inverted_index):
                 posting.get("important_tf", 0)
             )
             #final score
-            combined_score = tf_value + (important_value * 2)
+            combined_score = (tf_value * idf) + (important_value * 5)
 
             if current_doc_id not in document_scores:
                 document_scores[current_doc_id] = 0
 
             document_scores[current_doc_id] += combined_score
+
+    #bonus for matching multiple query terms
+    for doc_id in document_scores:
+        document_scores[doc_id] += matched_terms.get(doc_id, 0) * 5
+
     #return doc id: score
     return document_scores
 
