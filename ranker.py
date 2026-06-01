@@ -5,15 +5,17 @@ import math
 def safe_number(value):
     if isinstance(value, int) or isinstance(value, float):
         return max(value, 0)
-
     return 0
 
 #build doc scores
 #tf + (important_tf * 2)
 def build_document_scores(query, retrieved_doc_ids, inverted_index):
-    if not isinstance(inverted_index, dict):
+    #took out cause causing errors
+    #if not isinstance(inverted_index, dict):
         #index correct
-        raise TypeError("index must be a dict")
+        #raise TypeError("index must be a dict")
+    if inversted_index is None:
+        raise ValueError("index cannot be None")
     
     if retrieved_doc_ids is None:
         return {}
