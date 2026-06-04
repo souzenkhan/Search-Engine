@@ -1,6 +1,7 @@
 import os
 from retriever import load_index_safe, load_doc_id_map, retrieve
 from ranker import rank_documents
+import time
 
 
 def search():
@@ -30,6 +31,9 @@ def search():
             continue
 
         # Retrieve matching documents
+        start_time = time.perf_counter()
+
+        # Retrieve matching documents
         retrieved_doc_ids = retrieve(query, index)
 
         if not retrieved_doc_ids:
@@ -43,8 +47,13 @@ def search():
             index
         )
 
+        end_time = time.perf_counter()
+
+        query_time_ms = (end_time - start_time) * 1000
+
         # Convert doc_ids to URLs
         print("\nTop Results:")
+
 
         for i, doc_id in enumerate(ranked_doc_ids, start=1):
 
@@ -54,6 +63,8 @@ def search():
             )
 
             print(f"{i}. {url}")
+
+        print(f"\nQuery processed in {query_time_ms:.2f} ms")
 
 
 if __name__ == "__main__":

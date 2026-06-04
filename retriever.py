@@ -28,6 +28,9 @@ def retrieve(query: str, index: dict) -> list:
         postings = get_postings(index, term)
         doc_ids = {p["doc_id"] for p in postings}
         posting_sets.append(doc_ids)
+    
+    #makes sure smallest posting list is first for efficient intersection
+    posting_sets.sort(key=len)
 
     # AND logic: only keep doc_ids that appear in every term's postings
     result = posting_sets[0]
@@ -42,6 +45,7 @@ class IndexHandle:
         with open(offsets_path, "r", encoding="utf-8") as f:
             self._offsets = json.load(f)
         self._fh = open(index_path, "r", encoding="utf-8")
+        self._cache = {}
  
     def get(self, term, default=None):
         postings = self.get_postings(term)
@@ -53,29 +57,51 @@ class IndexHandle:
         return term in self._offsets
  
     def get_postings(self, term):
+        
+        #using cache to avoid disk reads for repeated terms
+        if term in self._cache:
+            return self._cache[term]
+
         offset = self._offsets.get(term)
+
         if offset is None:
             return []
+
         self._fh.seek(offset)
+
         buf = []
         depth = 0
         found = False
+
         while True:
             ch = self._fh.read(1)
+
             if not ch:
                 break
+
             buf.append(ch)
+
             if ch == '[':
                 depth += 1
                 found = True
+
             elif ch == ']':
                 depth -= 1
+
                 if found and depth == 0:
                     break
+
         if not buf or not found:
             return []
+
         try:
-            return json.loads("".join(buf))
+            postings = json.loads("".join(buf))
+
+            #cache postings so future lookups avoid disk reads
+            self._cache[term] = postings
+
+            return postings
+
         except json.JSONDecodeError:
             return []
  
